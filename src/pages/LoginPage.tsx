@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Navigate, useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import { ShieldCheck, Package, BadgePercent, ArrowLeft, Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import TelegramLoginButton from '../components/common/TelegramLoginButton'
@@ -10,8 +10,14 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [authLoading, setAuthLoading] = useState(false)
 
+  // Redirect when user state is confirmed in context (after loginWithTelegram batches)
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/cabinet', { replace: true })
+    }
+  }, [user, loading, navigate])
+
   if (loading) return null
-  if (user) return <Navigate to="/cabinet" replace />
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0f1e35] to-[#1e3a5f] flex flex-col">
@@ -78,16 +84,14 @@ export default function LoginPage() {
             )}
 
             {authLoading ? (
-              <div className="flex justify-center py-2">
+              <div className="flex flex-col items-center gap-2 py-2">
                 <Loader2 className="h-6 w-6 text-white/50 animate-spin" />
+                <span className="text-white/40 text-xs">Входим...</span>
               </div>
             ) : (
               <div className="flex justify-center">
                 <TelegramLoginButton
-                  onSuccess={() => {
-                    setAuthLoading(true)
-                    navigate('/cabinet', { replace: true })
-                  }}
+                  onSuccess={() => setAuthLoading(true)}
                   onError={msg => {
                     setError(msg)
                     setAuthLoading(false)
