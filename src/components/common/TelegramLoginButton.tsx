@@ -16,16 +16,25 @@ export default function TelegramLoginButton({ onSuccess, onError }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const { loginWithTelegram } = useAuth()
 
+  // Refs so the stable callback always sees the latest values without re-running the effect
+  const loginRef = useRef(loginWithTelegram)
+  const onSuccessRef = useRef(onSuccess)
+  const onErrorRef = useRef(onError)
+  loginRef.current = loginWithTelegram
+  onSuccessRef.current = onSuccess
+  onErrorRef.current = onError
+
   useEffect(() => {
     const botName = import.meta.env.VITE_TG_BOT_USERNAME as string
     if (!botName || !containerRef.current) return
 
+    // Set once — stays alive until component unmounts so Telegram can call it after popup
     window.onTelegramAuth = async (data: TelegramAuthData) => {
       try {
-        await loginWithTelegram(data)
-        onSuccess?.()
+        await loginRef.current(data)
+        onSuccessRef.current?.()
       } catch (err) {
-        onError?.(err instanceof Error ? err.message : 'Ошибка авторизации')
+        onErrorRef.current?.(err instanceof Error ? err.message : 'Ошибка авторизации')
       }
     }
 
@@ -43,7 +52,7 @@ export default function TelegramLoginButton({ onSuccess, onError }: Props) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(window as any).onTelegramAuth = undefined
     }
-  }, [loginWithTelegram, onSuccess, onError])
+  }, []) // Run once on mount only
 
   return <div ref={containerRef} />
 }

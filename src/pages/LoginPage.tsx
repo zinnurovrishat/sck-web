@@ -82,10 +82,6 @@ export default function LoginPage() {
                 onError={msg => setError(msg)}
               />
             </div>
-
-            <p className="text-white/20 text-xs text-center mt-4">
-              Кнопка Telegram появится, если домен сайта настроен в BotFather
-            </p>
           </div>
 
           {/* Discount info */}
