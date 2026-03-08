@@ -1,16 +1,17 @@
 import { useState } from 'react'
-import { Navigate, Link } from 'react-router-dom'
-import { ShieldCheck, Package, BadgePercent, ArrowLeft } from 'lucide-react'
+import { Navigate, useNavigate, Link } from 'react-router-dom'
+import { ShieldCheck, Package, BadgePercent, ArrowLeft, Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import TelegramLoginButton from '../components/common/TelegramLoginButton'
 
 export default function LoginPage() {
   const { user, loading } = useAuth()
+  const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+  const [authLoading, setAuthLoading] = useState(false)
 
   if (loading) return null
-  if (user || success) return <Navigate to="/cabinet" replace />
+  if (user) return <Navigate to="/cabinet" replace />
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0f1e35] to-[#1e3a5f] flex flex-col">
@@ -76,12 +77,24 @@ export default function LoginPage() {
               </div>
             )}
 
-            <div className="flex justify-center">
-              <TelegramLoginButton
-                onSuccess={() => setSuccess(true)}
-                onError={msg => setError(msg)}
-              />
-            </div>
+            {authLoading ? (
+              <div className="flex justify-center py-2">
+                <Loader2 className="h-6 w-6 text-white/50 animate-spin" />
+              </div>
+            ) : (
+              <div className="flex justify-center">
+                <TelegramLoginButton
+                  onSuccess={() => {
+                    setAuthLoading(true)
+                    navigate('/cabinet', { replace: true })
+                  }}
+                  onError={msg => {
+                    setError(msg)
+                    setAuthLoading(false)
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Discount info */}
