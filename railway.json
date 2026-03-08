@@ -2,14 +2,7 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile",
-    "buildArgs": {
-      "VITE_TG_BOT_TOKEN": "${{ VITE_TG_BOT_TOKEN }}",
-      "VITE_TG_CHAT_ID": "${{ VITE_TG_CHAT_ID }}",
-      "VITE_TG_BOT_USERNAME": "${{ VITE_TG_BOT_USERNAME }}",
-      "VITE_SUPABASE_URL": "${{ VITE_SUPABASE_URL }}",
-      "VITE_SUPABASE_ANON_KEY": "${{ VITE_SUPABASE_ANON_KEY }}"
-    }
+    "dockerfilePath": "Dockerfile"
   },
   "deploy": {
     "healthcheckPath": "/",
