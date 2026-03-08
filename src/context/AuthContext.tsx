@@ -81,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const loginWithTelegram = async (tgData: TelegramAuthData) => {
+    console.log('[Auth] loginWithTelegram called, URL:', EDGE_FUNCTION_URL)
     const res = await fetch(EDGE_FUNCTION_URL, {
       method: 'POST',
       headers: {
@@ -90,12 +91,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify(tgData),
     })
 
+    console.log('[Auth] Edge Function response status:', res.status)
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
+      console.error('[Auth] Edge Function error:', err)
       throw new Error(err.error ?? 'Auth failed')
     }
 
-    const { userId: _userId, token: newToken, user: newUser } = await res.json()
+    const json = await res.json()
+    console.log('[Auth] Edge Function success:', json)
+    const { userId: _userId, token: newToken, user: newUser } = json
     setUser(newUser)
     setToken(newToken)
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: newUser, token: newToken }))

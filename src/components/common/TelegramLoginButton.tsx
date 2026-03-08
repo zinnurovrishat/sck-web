@@ -16,7 +16,6 @@ export default function TelegramLoginButton({ onSuccess, onError }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const { loginWithTelegram } = useAuth()
 
-  // Refs so the stable callback always sees the latest values without re-running the effect
   const loginRef = useRef(loginWithTelegram)
   const onSuccessRef = useRef(onSuccess)
   const onErrorRef = useRef(onError)
@@ -26,17 +25,26 @@ export default function TelegramLoginButton({ onSuccess, onError }: Props) {
 
   useEffect(() => {
     const botName = import.meta.env.VITE_TG_BOT_USERNAME as string
-    if (!botName || !containerRef.current) return
+    console.log('[TG] useEffect mount, botName:', botName)
 
-    // Set once — stays alive until component unmounts so Telegram can call it after popup
+    if (!botName || !containerRef.current) {
+      console.warn('[TG] Missing botName or container')
+      return
+    }
+
     window.onTelegramAuth = async (data: TelegramAuthData) => {
+      console.log('[TG] onTelegramAuth called:', data)
       try {
         await loginRef.current(data)
+        console.log('[TG] loginWithTelegram success')
         onSuccessRef.current?.()
       } catch (err) {
+        console.error('[TG] loginWithTelegram error:', err)
         onErrorRef.current?.(err instanceof Error ? err.message : 'Ошибка авторизации')
       }
     }
+
+    console.log('[TG] window.onTelegramAuth set:', typeof window.onTelegramAuth)
 
     const script = document.createElement('script')
     script.src = 'https://telegram.org/js/telegram-widget.js?22'
@@ -49,10 +57,10 @@ export default function TelegramLoginButton({ onSuccess, onError }: Props) {
     containerRef.current.appendChild(script)
 
     return () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      console.log('[TG] cleanup / unmount')
       ;(window as any).onTelegramAuth = undefined
     }
-  }, []) // Run once on mount only
+  }, [])
 
   return <div ref={containerRef} />
 }
