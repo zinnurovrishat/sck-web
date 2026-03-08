@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
-import { PRODUCTS, CATEGORY_LABELS } from '../data/products'
+import { CATEGORY_LABELS } from '../data/products'
+import { useProducts } from '../hooks/useProducts'
 import type { ProductCategory, StrengthGrade } from '../types'
 import ProductCard from '../components/common/ProductCard'
 
@@ -13,6 +14,7 @@ const SORT_OPTIONS = [
 ]
 
 export default function ShopPage() {
+  const { data: products = [] } = useProducts()
   const [category, setCategory] = useState<ProductCategory | 'all'>('all')
   const [grades, setGrades] = useState<StrengthGrade[]>([])
   const [sort, setSort] = useState('popular')
@@ -22,7 +24,7 @@ export default function ShopPage() {
     setGrades(prev => (prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]))
 
   const filtered = useMemo(() => {
-    let result = PRODUCTS.filter(p => p.in_stock)
+    let result = products.filter(p => p.in_stock)
     if (category !== 'all') result = result.filter(p => p.category === category)
     if (grades.length > 0)
       result = result.filter(p => p.strength_grade && grades.includes(p.strength_grade))
@@ -30,7 +32,7 @@ export default function ShopPage() {
     if (sort === 'price_asc') result = [...result].sort((a, b) => a.price_cash - b.price_cash)
     if (sort === 'price_desc') result = [...result].sort((a, b) => b.price_cash - a.price_cash)
     return result
-  }, [category, grades, sort])
+  }, [category, grades, sort, products])
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

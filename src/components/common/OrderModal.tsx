@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAuth } from '../../context/AuthContext'
 import { CheckCircle, Phone, User, Loader2 } from 'lucide-react'
 import {
   Dialog,
@@ -10,6 +11,7 @@ import {
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { sendTelegramMessage } from '../../lib/telegram'
+import { supabase } from '../../lib/supabase'
 import type { CartItem, PaymentMethod, DeliveryMethod } from '../../types'
 
 interface Props {
@@ -23,7 +25,7 @@ interface Props {
   onSuccess: () => void
 }
 
-type Step = 'form' | 'sending' | 'success'
+type Step = 'form' | 'sending' | 'success' | 'error'
 
 function formatPhone(raw: string): string {
   // Strip all non-digits
@@ -53,6 +55,7 @@ export default function OrderModal({
   totalWeight,
   onSuccess,
 }: Props) {
+  const { user } = useAuth()
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('+7')
   const [phoneError, setPhoneError] = useState('')
@@ -98,14 +101,30 @@ export default function OrderModal({
     lines.push(`💳 <b>Оплата:</b> ${paymentMethod === 'cash' ? 'Наличные' : 'Безналичный'}`)
     lines.push(`🚚 <b>Доставка:</b> ${deliveryMethod === 'manipulator' ? 'Манипулятор' : 'Самовывоз'}`)
 
+    // Сохраняем заявку в Supabase
+    const orderNumber = `SCK-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`
+    await supabase.from('orders').insert({
+      order_number: orderNumber,
+      customer_name: name.trim() || null,
+      customer_phone: phone.trim(),
+      items: items.map(item => ({
+        product_id: item.product.id,
+        name: item.product.name,
+        qty: item.quantity,
+        unit: item.product.unit,
+        price: paymentMethod === 'cash' ? item.product.price_cash : item.product.price_cashless,
+      })),
+      total_amount: totalAmount,
+      total_weight: totalWeight,
+      payment_method: paymentMethod,
+      delivery_method: deliveryMethod,
+      status: 'pending',
+      user_id: user?.id ?? null,
+    })
+
     const ok = await sendTelegramMessage(lines.join('\n'))
 
-    if (ok) {
-      setStep('success')
-    } else {
-      // Fallback: show success anyway, log failed silently
-      setStep('success')
-    }
+    setStep(ok ? 'success' : 'error')
   }
 
   const handleClose = () => {
@@ -121,7 +140,45 @@ export default function OrderModal({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
-        {step === 'success' ? (
+        {step === 'error' ? (
+          <div className="flex flex-col items-center text-center py-6 gap-4">
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center">
+              <Phone className="h-9 w-9 text-red-400" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-bold text-[#1e3a5f] mb-2">
+                Не удалось отправить заявку
+              </DialogTitle>
+              <p className="text-gray-500 text-sm">
+                Что-то пошло не так. Позвоните нам напрямую — ответим сразу:
+              </p>
+              <a
+                href="tel:89177969222"
+                className="font-bold text-[#f97316] text-xl mt-2 block hover:underline"
+              >
+                8-917-796-92-22
+              </a>
+              <p className="text-gray-400 text-xs mt-2">
+                Или напишите: info@sck-stroi.ru
+              </p>
+              <p className="text-gray-400 text-xs mt-1">
+                Пн–Пт 8:00–18:00, Сб 9:00–15:00
+              </p>
+            </div>
+            <button
+              onClick={() => setStep('form')}
+              className="mt-2 w-full bg-[#f97316] hover:bg-[#ea6c04] text-white font-semibold py-3 rounded-xl transition-colors cursor-pointer"
+            >
+              Попробовать снова
+            </button>
+            <button
+              onClick={handleClose}
+              className="w-full border border-gray-200 hover:bg-gray-50 text-gray-600 font-medium py-3 rounded-xl transition-colors cursor-pointer"
+            >
+              Закрыть
+            </button>
+          </div>
+        ) : step === 'success' ? (
           <div className="flex flex-col items-center text-center py-6 gap-4">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
               <CheckCircle className="h-9 w-9 text-green-500" />

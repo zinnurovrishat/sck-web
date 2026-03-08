@@ -5,6 +5,7 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { useCart } from '../context/CartContext'
 import { PRODUCTS } from '../data/products'
+import { useProducts } from '../hooks/useProducts'
 
 interface Opening {
   id: string
@@ -26,8 +27,6 @@ interface CalcState {
   windows: Opening[]
 }
 
-const BLOCK_PRODUCTS = PRODUCTS.filter(p => p.category === 'blocks')
-
 function newOpening(): Opening {
   return { id: Math.random().toString(36).slice(2), width: 0.9, height: 2.1 }
 }
@@ -38,6 +37,8 @@ function newWindow(): Opening {
 
 export default function CalculatorPage() {
   const { addItem } = useCart()
+  const { data: allProducts = PRODUCTS } = useProducts()
+  const blockProducts = allProducts.filter(p => p.category === 'blocks')
   const [added, setAdded] = useState(false)
 
   const [state, setState] = useState<CalcState>({
@@ -45,7 +46,7 @@ export default function CalculatorPage() {
     width: 8,
     height: 3,
     thickness: 40,
-    blockId: BLOCK_PRODUCTS[0]?.id ?? '',
+    blockId: blockProducts[0]?.id ?? '',
     jointMm: 10,
     wastePct: 10,
     doors: [newOpening()],
@@ -55,7 +56,7 @@ export default function CalculatorPage() {
   const update = (patch: Partial<CalcState>) =>
     setState(prev => ({ ...prev, ...patch }))
 
-  const selectedBlock = PRODUCTS.find(p => p.id === state.blockId) ?? BLOCK_PRODUCTS[0]
+  const selectedBlock = allProducts.find(p => p.id === state.blockId) ?? blockProducts[0]
 
   const result = useMemo(() => {
     if (!selectedBlock) return null
@@ -466,7 +467,7 @@ export default function CalculatorPage() {
                   onChange={e => update({ blockId: e.target.value })}
                   className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20 cursor-pointer"
                 >
-                  {BLOCK_PRODUCTS.map(p => (
+                  {blockProducts.map(p => (
                     <option key={p.id} value={p.id}>
                       {p.dimensions}
                     </option>

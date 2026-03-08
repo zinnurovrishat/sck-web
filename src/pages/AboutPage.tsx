@@ -4,7 +4,7 @@ import { CheckCircle, Truck, FileText, Calculator, Phone } from 'lucide-react'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' as const } },
 }
 
 const stagger = {

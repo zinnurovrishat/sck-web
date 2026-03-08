@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ShoppingCart, Phone, Menu, X } from 'lucide-react'
+import { ShoppingCart, Phone, Menu, X, UserCircle } from 'lucide-react'
 import { useCart } from '../../context/CartContext'
+import { useAuth } from '../../context/AuthContext'
 
 const LOGO_URL =
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6983642a051677d93d98d43e/e6cf459eb_grok-image-376bee61-792c-45cd-9207-dd73497145571.png'
@@ -15,6 +16,7 @@ const NAV_LINKS = [
 
 export default function Header() {
   const { totalItems, openCart } = useCart()
+  const { user } = useAuth()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -53,6 +55,20 @@ export default function Header() {
               <Phone className="h-4 w-4" />
               8-917-796-92-22
             </a>
+
+            {/* Cabinet / Login */}
+            <Link
+              to={user ? '/cabinet' : '/login'}
+              className="hidden sm:flex items-center gap-1.5 p-2 rounded-lg border border-gray-200 hover:border-[#1e3a5f] transition-colors"
+              aria-label="Личный кабинет"
+              title={user ? `Кабинет: ${user.name}` : 'Войти'}
+            >
+              {user?.photo_url ? (
+                <img src={user.photo_url} alt={user.name} className="h-5 w-5 rounded-full object-cover" />
+              ) : (
+                <UserCircle className={`h-5 w-5 ${user ? 'text-[#1e3a5f]' : 'text-gray-400'}`} />
+              )}
+            </Link>
 
             <button
               onClick={openCart}
@@ -97,6 +113,14 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+            <Link
+              to={user ? '/cabinet' : '/login'}
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <UserCircle className="h-4 w-4" />
+              {user ? 'Личный кабинет' : 'Войти'}
+            </Link>
             <a
               href="tel:89177969222"
               className="mt-2 flex items-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium text-[#1e3a5f] bg-[#1e3a5f]/5"

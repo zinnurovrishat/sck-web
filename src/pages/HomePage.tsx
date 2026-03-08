@@ -1,15 +1,17 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Calculator, User, CheckCircle, Truck, FileText, Phone, Mail, ChevronRight } from 'lucide-react'
+import { Calculator, PhoneCall, CheckCircle, Truck, FileText, Phone, Mail, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { PRODUCTS } from '../data/products'
+import { useProducts } from '../hooks/useProducts'
 import ProductCard from '../components/common/ProductCard'
+import CallbackModal from '../components/common/CallbackModal'
 
 const HERO_BG =
   'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1600&q=80&auto=format&fit=crop'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 32 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' as const } },
 }
 
 const stagger = {
@@ -18,7 +20,9 @@ const stagger = {
 }
 
 export default function HomePage() {
-  const popularProducts = PRODUCTS.filter(p => p.is_popular).slice(0, 4)
+  const { data: products = [] } = useProducts()
+  const popularProducts = products.filter(p => p.is_popular).slice(0, 4)
+  const [callbackOpen, setCallbackOpen] = useState(false)
 
   return (
     <div>
@@ -38,7 +42,7 @@ export default function HomePage() {
           className="relative z-10 w-full max-w-3xl mx-auto px-4 sm:px-6 text-center"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
+          transition={{ duration: 0.6, ease: 'easeOut' as const }}
         >
           {/* Trust badge */}
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm mb-6">
@@ -73,13 +77,13 @@ export default function HomePage() {
               <Calculator className="h-5 w-5" />
               Рассчитать материалы
             </Link>
-            <Link
-              to="/dashboard"
-              className="flex items-center justify-center gap-2 border border-white/40 hover:border-white/70 hover:bg-white/10 text-white font-medium px-6 py-4 rounded-xl transition-all text-base w-full sm:w-auto"
+            <button
+              onClick={() => setCallbackOpen(true)}
+              className="flex items-center justify-center gap-2 border border-white/40 hover:border-white/70 hover:bg-white/10 text-white font-medium px-6 py-4 rounded-xl transition-all text-base w-full sm:w-auto cursor-pointer"
             >
-              <User className="h-5 w-5" />
-              Войти в кабинет
-            </Link>
+              <PhoneCall className="h-5 w-5" />
+              Перезвоните мне
+            </button>
           </div>
         </motion.div>
       </section>
@@ -160,6 +164,8 @@ export default function HomePage() {
           ))}
         </div>
       </motion.section>
+
+      <CallbackModal open={callbackOpen} onClose={() => setCallbackOpen(false)} />
 
       {/* ── Manager contact ── */}
       <motion.section

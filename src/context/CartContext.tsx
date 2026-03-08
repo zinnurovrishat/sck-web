@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import type { CartItem, Product, PaymentMethod, DeliveryMethod } from '../types'
 
 interface CartContextType {
@@ -21,11 +21,32 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | null>(null)
 
+const STORAGE_KEY = 'sck_cart'
+
+function loadFromStorage(): { items: CartItem[]; paymentMethod: PaymentMethod; deliveryMethod: DeliveryMethod } {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return { items: [], paymentMethod: 'cash', deliveryMethod: 'manipulator' }
+    return JSON.parse(raw)
+  } catch {
+    return { items: [], paymentMethod: 'cash', deliveryMethod: 'manipulator' }
+  }
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([])
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
-  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('manipulator')
+  const saved = loadFromStorage()
+  const [items, setItems] = useState<CartItem[]>(saved.items)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(saved.paymentMethod)
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(saved.deliveryMethod)
   const [isOpen, setIsOpen] = useState(false)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, paymentMethod, deliveryMethod }))
+    } catch {
+      // localStorage unavailable (private mode, quota exceeded) — ignore silently
+    }
+  }, [items, paymentMethod, deliveryMethod])
 
   const addItem = (product: Product, quantity = 1) => {
     setItems(prev => {
