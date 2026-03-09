@@ -7,10 +7,6 @@
     <title>СЦК — Стерлитамакский центр комплектации</title>
     <meta name="description" content="Комплектация стройплощадок за 1 день. Шлакоблоки, кирпич, цемент, кладочная сетка. Доставка по Стерлитамаку и Югу Башкирии." />
     <script>
-      // Set window.onTelegramAuth as early as possible (before React loads).
-      // Telegram widget can fire the callback at any moment after the script loads,
-      // including before React mounts. We buffer the data here and let the component
-      // pick it up via window.__tgAuthData or the live dispatcher.
       window.__tgAuthData = null;
       window.__tgAuthDispatch = null;
       window.onTelegramAuth = function(data) {
@@ -21,6 +17,10 @@
           window.__tgAuthData = data;
         }
       };
+      // Debug: catch ALL postMessage events to see what Telegram widget sends
+      window.addEventListener('message', function(e) {
+        console.log('[MSG]', e.origin, typeof e.data === 'string' ? e.data.slice(0, 200) : JSON.stringify(e.data).slice(0, 200));
+      });
     </script>
   </head>
   <body>
