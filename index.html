@@ -6,6 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>СЦК — Стерлитамакский центр комплектации</title>
     <meta name="description" content="Комплектация стройплощадок за 1 день. Шлакоблоки, кирпич, цемент, кладочная сетка. Доставка по Стерлитамаку и Югу Башкирии." />
+    <script>
+      // Set window.onTelegramAuth as early as possible (before React loads).
+      // Telegram widget can fire the callback at any moment after the script loads,
+      // including before React mounts. We buffer the data here and let the component
+      // pick it up via window.__tgAuthData or the live dispatcher.
+      window.__tgAuthData = null;
+      window.__tgAuthDispatch = null;
+      window.onTelegramAuth = function(data) {
+        console.log('[TG early] onTelegramAuth fired', data);
+        if (typeof window.__tgAuthDispatch === 'function') {
+          window.__tgAuthDispatch(data);
+        } else {
+          window.__tgAuthData = data;
+        }
+      };
+    </script>
   </head>
   <body>
     <div id="root"></div>

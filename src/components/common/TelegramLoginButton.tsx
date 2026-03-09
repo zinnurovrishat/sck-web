@@ -4,6 +4,8 @@ import { useAuth, type TelegramAuthData } from '../../context/AuthContext'
 declare global {
   interface Window {
     onTelegramAuth: (user: TelegramAuthData) => void
+    __tgAuthData: TelegramAuthData | null
+    __tgAuthDispatch: ((data: TelegramAuthData) => void) | null
   }
 }
 
@@ -25,27 +27,34 @@ export default function TelegramLoginButton({ onSuccess, onError }: Props) {
 
   useEffect(() => {
     const botName = import.meta.env.VITE_TG_BOT_USERNAME as string
-    console.log('[TG] useEffect mount, botName:', botName)
+    console.log('[TG] mount, botName:', botName)
 
-    if (!botName || !containerRef.current) {
-      console.warn('[TG] Missing botName or container')
-      return
-    }
+    if (!botName || !containerRef.current) return
 
-    window.onTelegramAuth = async (data: TelegramAuthData) => {
-      console.log('[TG] onTelegramAuth called:', data)
+    const handleAuth = async (data: TelegramAuthData) => {
+      console.log('[TG] handleAuth called:', data)
       try {
         await loginRef.current(data)
-        console.log('[TG] loginWithTelegram success')
+        console.log('[TG] success')
         onSuccessRef.current?.()
       } catch (err) {
-        console.error('[TG] loginWithTelegram error:', err)
+        console.error('[TG] error:', err)
         onErrorRef.current?.(err instanceof Error ? err.message : 'Ошибка авторизации')
       }
     }
 
-    console.log('[TG] window.onTelegramAuth set:', typeof window.onTelegramAuth)
+    // Register live dispatcher so index.html handler can call us directly
+    window.__tgAuthDispatch = handleAuth
 
+    // If Telegram fired the callback before React mounted, process buffered data
+    if (window.__tgAuthData) {
+      console.log('[TG] processing buffered auth data')
+      const buffered = window.__tgAuthData
+      window.__tgAuthData = null
+      handleAuth(buffered)
+    }
+
+    // Add Telegram widget script
     const script = document.createElement('script')
     script.src = 'https://telegram.org/js/telegram-widget.js?22'
     script.setAttribute('data-telegram-login', botName)
@@ -57,8 +66,7 @@ export default function TelegramLoginButton({ onSuccess, onError }: Props) {
     containerRef.current.appendChild(script)
 
     return () => {
-      console.log('[TG] cleanup / unmount')
-      ;(window as any).onTelegramAuth = undefined
+      window.__tgAuthDispatch = null
     }
   }, [])
 
