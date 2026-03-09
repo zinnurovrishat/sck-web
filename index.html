@@ -17,9 +17,19 @@
           window.__tgAuthData = data;
         }
       };
-      // Debug: catch ALL postMessage events to see what Telegram widget sends
+      // Intercept Telegram auth_user postMessage directly
+      // (telegram-widget.js does not reliably call window.onTelegramAuth in all cases)
       window.addEventListener('message', function(e) {
-        console.log('[MSG]', e.origin, typeof e.data === 'string' ? e.data.slice(0, 200) : JSON.stringify(e.data).slice(0, 200));
+        if (e.origin !== 'https://oauth.telegram.org') return;
+        try {
+          var data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+          if (data && data.event === 'auth_user' && data.auth_data) {
+            console.log('[TG] postMessage auth_user received', data.auth_data);
+            window.onTelegramAuth(data.auth_data);
+          }
+        } catch (err) {
+          console.error('[TG] postMessage parse error', err);
+        }
       });
     </script>
   </head>
