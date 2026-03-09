@@ -10,7 +10,6 @@
       window.__tgAuthData = null;
       window.__tgAuthDispatch = null;
       window.onTelegramAuth = function(data) {
-        console.log('[TG early] onTelegramAuth fired', data);
         if (typeof window.__tgAuthDispatch === 'function') {
           window.__tgAuthDispatch(data);
         } else {
@@ -18,18 +17,15 @@
         }
       };
       // Intercept Telegram auth_user postMessage directly
-      // (telegram-widget.js does not reliably call window.onTelegramAuth in all cases)
+      // (telegram-widget.js does not always call window.onTelegramAuth reliably)
       window.addEventListener('message', function(e) {
         if (e.origin !== 'https://oauth.telegram.org') return;
         try {
           var data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
           if (data && data.event === 'auth_user' && data.auth_data) {
-            console.log('[TG] postMessage auth_user received', data.auth_data);
             window.onTelegramAuth(data.auth_data);
           }
-        } catch (err) {
-          console.error('[TG] postMessage parse error', err);
-        }
+        } catch (_) {}
       });
     </script>
   </head>
