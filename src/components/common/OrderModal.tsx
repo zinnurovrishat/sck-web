@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import { CheckCircle, Phone, User, Loader2 } from 'lucide-react'
+import { CheckCircle, Phone, User, Loader2, BadgePercent } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -60,6 +60,31 @@ export default function OrderModal({
   const [phone, setPhone] = useState('+7')
   const [phoneError, setPhoneError] = useState('')
   const [step, setStep] = useState<Step>('form')
+  const [discount, setDiscount] = useState(0)
+
+  // Re-initialise form and load discount when modal opens
+  useEffect(() => {
+    if (!open) return
+    setName(user?.name ?? '')
+    setPhone('+7')
+    setStep('form')
+    setPhoneError('')
+
+    if (!user) { setDiscount(0); return }
+    supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'completed')
+      .then(({ count }) => {
+        const n = count ?? 0
+        if (n >= 20) setDiscount(10)
+        else if (n >= 10) setDiscount(5)
+        else if (n >= 5) setDiscount(3)
+        else if (n >= 1) setDiscount(1)
+        else setDiscount(0)
+      })
+  }, [open, user])
 
   const validatePhone = (v: string) => v.replace(/\D/g, '').length === 11
 
@@ -90,7 +115,13 @@ export default function OrderModal({
       lines.push(`• ${item.product.name} — ${item.quantity} ${item.product.unit} × ${price} ₽`)
     })
     lines.push('')
-    lines.push(`💰 <b>Итого:</b> ${totalAmount.toLocaleString('ru-RU')} ₽`)
+    if (user && discount > 0) {
+      const discounted = Math.round(totalAmount * (1 - discount / 100))
+      lines.push(`💰 <b>Итого:</b> ${totalAmount.toLocaleString('ru-RU')} ₽  →  <b>${discounted.toLocaleString('ru-RU')} ₽</b> (скидка ${discount}%)`)
+      lines.push(`⭐️ <b>Клиент:</b> @${user.username ?? user.name} (постоянный, скидка ${discount}%)`)
+    } else {
+      lines.push(`💰 <b>Итого:</b> ${totalAmount.toLocaleString('ru-RU')} ₽`)
+    }
     lines.push(
       `⚖️ <b>Вес:</b> ${
         totalWeight >= 1000
@@ -130,10 +161,6 @@ export default function OrderModal({
   const handleClose = () => {
     if (step === 'sending') return
     if (step === 'success') onSuccess()
-    setStep('form')
-    setName('')
-    setPhone('+7')
-    setPhoneError('')
     onClose()
   }
 
@@ -231,12 +258,33 @@ export default function OrderModal({
                   </div>
                 ))}
               </div>
-              <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between">
+              <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between items-baseline">
                 <span className="text-sm font-semibold text-[#1e3a5f]">Итого</span>
-                <span className="font-bold text-[#f97316]">
-                  {totalAmount.toLocaleString('ru-RU')} ₽
-                </span>
+                <div className="text-right">
+                  {user && discount > 0 ? (
+                    <>
+                      <span className="text-xs text-gray-400 line-through mr-1.5">
+                        {totalAmount.toLocaleString('ru-RU')} ₽
+                      </span>
+                      <span className="font-bold text-[#f97316]">
+                        {Math.round(totalAmount * (1 - discount / 100)).toLocaleString('ru-RU')} ₽
+                      </span>
+                    </>
+                  ) : (
+                    <span className="font-bold text-[#f97316]">
+                      {totalAmount.toLocaleString('ru-RU')} ₽
+                    </span>
+                  )}
+                </div>
               </div>
+              {user && discount > 0 && (
+                <div className="flex items-center gap-1.5 mt-2 bg-purple-50 border border-purple-200 rounded-lg px-2.5 py-1.5">
+                  <BadgePercent className="h-3.5 w-3.5 text-purple-600 shrink-0" />
+                  <span className="text-xs text-purple-700 font-medium">
+                    Ваша скидка {discount}% применена
+                  </span>
+                </div>
+              )}
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
