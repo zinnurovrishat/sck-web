@@ -1,0 +1,6 @@
+export const COMPANY_PHONE = '8-917-796-92-22'
+export const COMPANY_PHONE_HREF = 'tel:89177969222'
+export const COMPANY_EMAIL = 'info@sck-stroi.ru'
+export const MANAGER_NAME = 'Ришат'
+export const WORKING_HOURS = 'Пн–Пт 8:00–18:00, Сб 9:00–15:00'
+export const SITE_URL = 'https://sck-stroy.ru'

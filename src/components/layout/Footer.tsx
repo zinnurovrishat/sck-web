@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Phone, Mail } from 'lucide-react'
+import { Phone } from 'lucide-react'
 
 const LOGO_URL =
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6983642a051677d93d98d43e/e6cf459eb_grok-image-376bee61-792c-45cd-9207-dd73497145571.png'
@@ -32,13 +32,6 @@ export default function Footer() {
               >
                 <Phone className="h-4 w-4 text-[#f97316]" />
                 8-917-796-92-22
-              </a>
-              <a
-                href="mailto:info@sck-stroi.ru"
-                className="flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors"
-              >
-                <Mail className="h-4 w-4 text-[#f97316]" />
-                info@sck-stroi.ru
               </a>
             </div>
           </div>

@@ -30,10 +30,20 @@ export default function CartSidebar() {
     <Sheet open={isOpen} onOpenChange={closeCart}>
       <SheetContent className="w-full sm:max-w-md flex flex-col">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2 text-[#1e3a5f]">
-            <ShoppingCart className="h-5 w-5" />
-            Корзина
-          </SheetTitle>
+          <div className="flex items-center justify-between">
+            <SheetTitle className="flex items-center gap-2 text-[#1e3a5f]">
+              <ShoppingCart className="h-5 w-5" />
+              Корзина
+            </SheetTitle>
+            {items.length > 0 && (
+              <button
+                onClick={clearCart}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+              >
+                Очистить
+              </button>
+            )}
+          </div>
         </SheetHeader>
 
         {items.length === 0 ? (

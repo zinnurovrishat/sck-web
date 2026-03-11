@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useSEO } from '../hooks/useSEO'
 import { Plus, X, ShoppingCart, Calculator, Info, Check } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Input } from '../components/ui/input'
@@ -36,6 +37,7 @@ function newWindow(): Opening {
 }
 
 export default function CalculatorPage() {
+  useSEO('Калькулятор блоков', 'Рассчитайте количество блоков для кладки стен онлайн. Учёт проёмов и запаса на бой.')
   const { addItem } = useCart()
   const { data: allProducts = PRODUCTS } = useProducts()
   const blockProducts = allProducts.filter(p => p.category === 'blocks')
@@ -469,7 +471,7 @@ export default function CalculatorPage() {
                 >
                   {blockProducts.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.dimensions}
+                      {p.name}{p.dimensions ? ` (${p.dimensions})` : ''}
                     </option>
                   ))}
                 </select>

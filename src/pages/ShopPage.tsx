@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { SlidersHorizontal } from 'lucide-react'
+import { useSEO } from '../hooks/useSEO'
+import { SlidersHorizontal, Search, X } from 'lucide-react'
 import { CATEGORY_LABELS } from '../data/products'
 import { useProducts } from '../hooks/useProducts'
 import type { ProductCategory, StrengthGrade } from '../types'
@@ -14,17 +15,27 @@ const SORT_OPTIONS = [
 ]
 
 export default function ShopPage() {
+  useSEO('Каталог товаров', 'Стройматериалы оптом: шлакоблоки, кирпич, цемент, кладочная сетка. Доставка по Стерлитамаку.')
   const { data: products = [] } = useProducts()
   const [category, setCategory] = useState<ProductCategory | 'all'>('all')
   const [grades, setGrades] = useState<StrengthGrade[]>([])
   const [sort, setSort] = useState('popular')
   const [filterOpen, setFilterOpen] = useState(false)
+  const [search, setSearch] = useState('')
 
   const toggleGrade = (g: StrengthGrade) =>
     setGrades(prev => (prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]))
 
+  const hasActiveFilters = category !== 'all' || grades.length > 0 || search.trim() !== ''
+
+  const resetFilters = () => { setCategory('all'); setGrades([]); setSearch('') }
+
   const filtered = useMemo(() => {
     let result = products.filter(p => p.in_stock)
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      result = result.filter(p => p.name.toLowerCase().includes(q))
+    }
     if (category !== 'all') result = result.filter(p => p.category === category)
     if (grades.length > 0)
       result = result.filter(p => p.strength_grade && grades.includes(p.strength_grade))
@@ -32,7 +43,7 @@ export default function ShopPage() {
     if (sort === 'price_asc') result = [...result].sort((a, b) => a.price_cash - b.price_cash)
     if (sort === 'price_desc') result = [...result].sort((a, b) => b.price_cash - a.price_cash)
     return result
-  }, [category, grades, sort, products])
+  }, [category, grades, sort, products, search])
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -69,6 +80,50 @@ export default function ShopPage() {
           </select>
         </div>
       </div>
+
+      {/* Search bar */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Поиск по названию..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20 focus:border-[#1e3a5f]"
+        />
+        {search && (
+          <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Active filter chips */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          {category !== 'all' && (
+            <span className="inline-flex items-center gap-1 bg-[#1e3a5f]/10 text-[#1e3a5f] text-xs font-medium px-2.5 py-1 rounded-full">
+              {CATEGORY_LABELS[category as ProductCategory]}
+              <button onClick={() => setCategory('all')} className="hover:text-red-500 cursor-pointer"><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          {grades.map(g => (
+            <span key={g} className="inline-flex items-center gap-1 bg-[#1e3a5f]/10 text-[#1e3a5f] text-xs font-medium px-2.5 py-1 rounded-full">
+              {g}
+              <button onClick={() => toggleGrade(g)} className="hover:text-red-500 cursor-pointer"><X className="h-3 w-3" /></button>
+            </span>
+          ))}
+          {search.trim() && (
+            <span className="inline-flex items-center gap-1 bg-[#1e3a5f]/10 text-[#1e3a5f] text-xs font-medium px-2.5 py-1 rounded-full">
+              «{search.trim()}»
+              <button onClick={() => setSearch('')} className="hover:text-red-500 cursor-pointer"><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          <button onClick={resetFilters} className="text-xs text-gray-400 hover:text-red-500 underline underline-offset-2 cursor-pointer">
+            Сбросить всё
+          </button>
+        </div>
+      )}
 
       <div className="flex gap-6">
         {/* ── Sidebar filters ── */}
@@ -123,7 +178,10 @@ export default function ShopPage() {
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-gray-400">
               <p className="text-lg font-medium">Товары не найдены</p>
-              <p className="text-sm mt-1">Попробуйте изменить фильтры</p>
+              <p className="text-sm mt-1">Попробуйте изменить фильтры или поисковый запрос</p>
+              {hasActiveFilters && (
+                <button onClick={resetFilters} className="mt-3 text-sm text-[#f97316] hover:underline cursor-pointer">Сбросить фильтры</button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">

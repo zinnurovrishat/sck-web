@@ -3,8 +3,10 @@ import { useNavigate, Link } from 'react-router-dom'
 import { ShieldCheck, Package, BadgePercent, ArrowLeft, Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import TelegramLoginButton from '../components/common/TelegramLoginButton'
+import { useSEO } from '../hooks/useSEO'
 
 export default function LoginPage() {
+  useSEO('Личный кабинет — вход', 'Войдите через Telegram для доступа к истории заказов и персональным скидкам.')
   const { user, loading } = useAuth()
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)

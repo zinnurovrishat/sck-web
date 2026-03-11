@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Navigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Package, TrendingUp, ShoppingBag, BadgePercent, LogOut, ChevronRight } from 'lucide-react'
+import { Package, TrendingUp, ShoppingBag, BadgePercent, LogOut, ChevronRight, Settings } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
+import { useSEO } from '../hooks/useSEO'
+import { calcDiscount, nextDiscountInfo } from '../lib/discount'
 
 interface OrderItem {
   name: string
@@ -39,25 +41,11 @@ const STATUS_COLORS: Record<Order['status'], string> = {
   cancelled: 'bg-gray-100 text-gray-500',
 }
 
-function calcDiscount(completedCount: number): number {
-  if (completedCount >= 20) return 10
-  if (completedCount >= 10) return 5
-  if (completedCount >= 5) return 3
-  if (completedCount >= 1) return 1
-  return 0
-}
-
-function nextDiscountInfo(completedCount: number): { target: number; discount: number } | null {
-  if (completedCount >= 20) return null
-  if (completedCount >= 10) return { target: 20, discount: 10 }
-  if (completedCount >= 5) return { target: 10, discount: 5 }
-  if (completedCount >= 1) return { target: 5, discount: 3 }
-  return { target: 1, discount: 1 }
-}
 
 type Tab = 'orders' | 'settings'
 
 export default function CabinetPage() {
+  useSEO('Личный кабинет')
   const { user, token, loading, logout } = useAuth()
   const [tab, setTab] = useState<Tab>('orders')
 
@@ -196,7 +184,7 @@ export default function CabinetPage() {
 
       {/* Tabs */}
       <div className="flex border-b border-gray-100 mb-6 gap-1">
-        {([['orders', Package, 'История заказов'], ['settings', BadgePercent, 'Настройки']] as const).map(
+        {([['orders', Package, 'История заказов'], ['settings', Settings, 'Настройки']] as const).map(
           ([t, Icon, label]) => (
             <button
               key={t}
@@ -328,16 +316,9 @@ export default function CabinetPage() {
                 )}
               </div>
             </div>
-            <p className="text-sm text-gray-400 mb-4">
-              Ваш аккаунт привязан к Telegram. Данные обновляются автоматически при каждом входе.
+            <p className="text-sm text-gray-400">
+              Аккаунт привязан к Telegram. Данные обновляются автоматически при каждом входе.
             </p>
-            <button
-              onClick={logout}
-              className="flex items-center gap-2 text-sm text-red-500 hover:text-red-600 font-medium cursor-pointer transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-              Выйти из кабинета
-            </button>
           </div>
         </div>
       )}

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { CheckCircle, Truck, FileText, Calculator, Phone } from 'lucide-react'
+import { useSEO } from '../hooks/useSEO'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -13,6 +14,7 @@ const stagger = {
 }
 
 export default function AboutPage() {
+  useSEO('О компании', 'СЦК — Стерлитамакский центр комплектации. 8+ лет на рынке, 120+ проектов, доставка за 1 день.')
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
@@ -144,7 +146,6 @@ export default function AboutPage() {
             { label: 'ОГРНИП', value: '325028000146701' },
             { label: 'Регион деятельности', value: 'Стерлитамак и Юг Башкирии' },
             { label: 'Телефон', value: '8-917-796-92-22' },
-            { label: 'Email', value: 'info@sck-stroi.ru' },
           ].map(r => (
             <div key={r.label} className="flex flex-col gap-0.5">
               <span className="text-gray-400 text-xs">{r.label}</span>

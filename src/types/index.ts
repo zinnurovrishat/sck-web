@@ -1,4 +1,4 @@
-export type ProductCategory = 'blocks' | 'bricks' | 'mesh' | 'cement' | 'other'
+export type ProductCategory = 'blocks' | 'bricks' | 'mesh' | 'cement' | 'rebar' | 'other'
 export type StrengthGrade = 'M50' | 'M75' | 'M100' | 'M125' | 'M150' | 'M200' | 'M500'
 export type ProductPurpose = 'partition' | 'wall' | 'universal'
 

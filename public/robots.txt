@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /cabinet
+Disallow: /login
+
+Sitemap: https://sck-stroy.ru/sitemap.xml

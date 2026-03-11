@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import { CheckCircle, Phone, User, Loader2, BadgePercent } from 'lucide-react'
+import { CheckCircle, Phone, User, Loader2, BadgePercent, Copy, Check } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,8 @@ import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { sendTelegramMessage } from '../../lib/telegram'
 import { supabase } from '../../lib/supabase'
+import { calcDiscount, applyDiscount, generateOrderNumber } from '../../lib/discount'
+import { COMPANY_PHONE, COMPANY_PHONE_HREF, COMPANY_EMAIL, MANAGER_NAME, WORKING_HOURS } from '../../lib/constants'
 import type { CartItem, PaymentMethod, DeliveryMethod } from '../../types'
 
 interface Props {
@@ -28,13 +30,10 @@ interface Props {
 type Step = 'form' | 'sending' | 'success' | 'error'
 
 function formatPhone(raw: string): string {
-  // Strip all non-digits
   let digits = raw.replace(/\D/g, '')
-  // Remove leading 7 or 8 (country code)
   if (digits.startsWith('7') || digits.startsWith('8')) {
     digits = digits.slice(1)
   }
-  // Limit to 10 digits
   digits = digits.slice(0, 10)
 
   let result = '+7'
@@ -43,6 +42,11 @@ function formatPhone(raw: string): string {
   if (digits.length >= 6) result += '-' + digits.slice(6, 8)
   if (digits.length >= 8) result += '-' + digits.slice(8, 10)
   return result
+}
+
+function isValidRussianPhone(v: string): boolean {
+  const digits = v.replace(/\D/g, '')
+  return digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'))
 }
 
 export default function OrderModal({
@@ -61,14 +65,16 @@ export default function OrderModal({
   const [phoneError, setPhoneError] = useState('')
   const [step, setStep] = useState<Step>('form')
   const [discount, setDiscount] = useState(0)
+  const [savedOrderNumber, setSavedOrderNumber] = useState('')
+  const [copied, setCopied] = useState(false)
 
-  // Re-initialise form and load discount when modal opens
   useEffect(() => {
     if (!open) return
     setName(user?.name ?? '')
     setPhone('+7')
     setStep('form')
     setPhoneError('')
+    setCopied(false)
 
     if (!user) { setDiscount(0); return }
     supabase
@@ -76,32 +82,30 @@ export default function OrderModal({
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('status', 'completed')
-      .then(({ count }) => {
-        const n = count ?? 0
-        if (n >= 20) setDiscount(10)
-        else if (n >= 10) setDiscount(5)
-        else if (n >= 5) setDiscount(3)
-        else if (n >= 1) setDiscount(1)
-        else setDiscount(0)
-      })
+      .then(({ count }) => setDiscount(calcDiscount(count ?? 0)))
   }, [open, user])
 
-  const validatePhone = (v: string) => v.replace(/\D/g, '').length === 11
-
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhone(e.target.value)
-    setPhone(formatted)
+    setPhone(formatPhone(e.target.value))
     if (phoneError) setPhoneError('')
+  }
+
+  const handleCopyOrderNumber = () => {
+    navigator.clipboard.writeText(savedOrderNumber).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!validatePhone(phone)) {
-      setPhoneError('Введите корректный номер телефона')
+    if (!isValidRussianPhone(phone)) {
+      setPhoneError('Введите корректный российский номер телефона')
       return
     }
     setPhoneError('')
     setStep('sending')
+
+    const finalAmount = user && discount > 0 ? applyDiscount(totalAmount, discount) : totalAmount
 
     const lines: string[] = []
     lines.push('📦 <b>Новая заявка с сайта СЦК</b>')
@@ -112,15 +116,14 @@ export default function OrderModal({
     lines.push('<b>Состав заказа:</b>')
     items.forEach(item => {
       const price = paymentMethod === 'cash' ? item.product.price_cash : item.product.price_cashless
-      lines.push(`• ${item.product.name} — ${item.quantity} ${item.product.unit} × ${price} ₽`)
+      lines.push(`• ${item.product.name} — ${item.quantity} ${item.product.unit} × ${price.toLocaleString('ru-RU')} ₽`)
     })
     lines.push('')
     if (user && discount > 0) {
-      const discounted = Math.round(totalAmount * (1 - discount / 100))
-      lines.push(`💰 <b>Итого:</b> ${totalAmount.toLocaleString('ru-RU')} ₽  →  <b>${discounted.toLocaleString('ru-RU')} ₽</b> (скидка ${discount}%)`)
+      lines.push(`💰 <b>Итого:</b> ${totalAmount.toLocaleString('ru-RU')} ₽  →  <b>${finalAmount.toLocaleString('ru-RU')} ₽</b> (скидка ${discount}%)`)
       lines.push(`⭐️ <b>Клиент:</b> @${user.username ?? user.name} (постоянный, скидка ${discount}%)`)
     } else {
-      lines.push(`💰 <b>Итого:</b> ${totalAmount.toLocaleString('ru-RU')} ₽`)
+      lines.push(`💰 <b>Итого:</b> ${finalAmount.toLocaleString('ru-RU')} ₽`)
     }
     lines.push(
       `⚖️ <b>Вес:</b> ${
@@ -132,8 +135,7 @@ export default function OrderModal({
     lines.push(`💳 <b>Оплата:</b> ${paymentMethod === 'cash' ? 'Наличные' : 'Безналичный'}`)
     lines.push(`🚚 <b>Доставка:</b> ${deliveryMethod === 'manipulator' ? 'Манипулятор' : 'Самовывоз'}`)
 
-    // Сохраняем заявку в Supabase
-    const orderNumber = `SCK-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`
+    const orderNumber = generateOrderNumber()
     await supabase.from('orders').insert({
       order_number: orderNumber,
       customer_name: name.trim() || null,
@@ -145,7 +147,7 @@ export default function OrderModal({
         unit: item.product.unit,
         price: paymentMethod === 'cash' ? item.product.price_cash : item.product.price_cashless,
       })),
-      total_amount: totalAmount,
+      total_amount: finalAmount,
       total_weight: totalWeight,
       payment_method: paymentMethod,
       delivery_method: deliveryMethod,
@@ -155,6 +157,7 @@ export default function OrderModal({
 
     const ok = await sendTelegramMessage(lines.join('\n'))
 
+    if (ok) setSavedOrderNumber(orderNumber)
     setStep(ok ? 'success' : 'error')
   }
 
@@ -180,17 +183,13 @@ export default function OrderModal({
                 Что-то пошло не так. Позвоните нам напрямую — ответим сразу:
               </p>
               <a
-                href="tel:89177969222"
+                href={COMPANY_PHONE_HREF}
                 className="font-bold text-[#f97316] text-xl mt-2 block hover:underline"
               >
-                8-917-796-92-22
+                {COMPANY_PHONE}
               </a>
-              <p className="text-gray-400 text-xs mt-2">
-                Или напишите: info@sck-stroi.ru
-              </p>
-              <p className="text-gray-400 text-xs mt-1">
-                Пн–Пт 8:00–18:00, Сб 9:00–15:00
-              </p>
+              <p className="text-gray-400 text-xs mt-2">Или напишите: {COMPANY_EMAIL}</p>
+              <p className="text-gray-400 text-xs mt-1">{WORKING_HOURS}</p>
             </div>
             <button
               onClick={() => setStep('form')}
@@ -210,14 +209,33 @@ export default function OrderModal({
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
               <CheckCircle className="h-9 w-9 text-green-500" />
             </div>
-            <div>
+            <div className="w-full">
               <DialogTitle className="text-xl font-bold text-[#1e3a5f] mb-2">
                 Заявка отправлена!
               </DialogTitle>
               <p className="text-gray-500 text-sm">
-                Ришат свяжется с вами по номеру
+                {MANAGER_NAME} свяжется с вами по номеру
               </p>
               <p className="font-semibold text-[#1e3a5f] mt-1">{phone}</p>
+              {savedOrderNumber && (
+                <div className="mt-3 bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
+                  <div className="text-left">
+                    <p className="text-xs text-gray-400">Номер заявки</p>
+                    <p className="text-sm font-mono font-semibold text-[#1e3a5f]">{savedOrderNumber}</p>
+                  </div>
+                  <button
+                    onClick={handleCopyOrderNumber}
+                    title="Скопировать номер"
+                    className="shrink-0 p-1.5 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer text-gray-400 hover:text-[#1e3a5f]"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              )}
               <p className="text-gray-400 text-xs mt-3">
                 Обычно перезваниваем в течение 15 минут
               </p>
@@ -238,7 +256,6 @@ export default function OrderModal({
               </DialogDescription>
             </DialogHeader>
 
-            {/* Order summary */}
             <div className="bg-gray-50 rounded-xl p-3 my-1">
               <p className="text-xs text-gray-400 mb-1.5">Ваш заказ</p>
               <div className="flex flex-col gap-1">
@@ -267,7 +284,7 @@ export default function OrderModal({
                         {totalAmount.toLocaleString('ru-RU')} ₽
                       </span>
                       <span className="font-bold text-[#f97316]">
-                        {Math.round(totalAmount * (1 - discount / 100)).toLocaleString('ru-RU')} ₽
+                        {applyDiscount(totalAmount, discount).toLocaleString('ru-RU')} ₽
                       </span>
                     </>
                   ) : (

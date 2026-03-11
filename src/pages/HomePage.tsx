@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Calculator, PhoneCall, CheckCircle, Truck, FileText, Phone, Mail, ChevronRight } from 'lucide-react'
+import { Calculator, PhoneCall, CheckCircle, Truck, FileText, Phone, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useProducts } from '../hooks/useProducts'
+import { useSEO } from '../hooks/useSEO'
 import ProductCard from '../components/common/ProductCard'
 import CallbackModal from '../components/common/CallbackModal'
 
@@ -19,10 +20,56 @@ const stagger = {
   visible: { transition: { staggerChildren: 0.12 } },
 }
 
+const LOCAL_BUSINESS_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'LocalBusiness',
+  name: 'СЦК — Стерлитамакский центр комплектации',
+  description: 'Комплектация стройплощадок за 1 день. Шлакоблоки, кирпич, цемент, кладочная сетка.',
+  url: 'https://sck-stroy.ru',
+  telephone: '+79177969222',
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Стерлитамак',
+    addressRegion: 'Республика Башкортостан',
+    addressCountry: 'RU',
+  },
+  geo: {
+    '@type': 'GeoCoordinates',
+    latitude: 53.6308,
+    longitude: 55.9317,
+  },
+  openingHoursSpecification: [
+    {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+      opens: '08:00',
+      closes: '18:00',
+    },
+  ],
+  priceRange: '₽₽',
+  areaServed: {
+    '@type': 'AdministrativeArea',
+    name: 'Стерлитамак и Юг Башкирии',
+  },
+}
+
 export default function HomePage() {
+  useSEO('Стройматериалы с доставкой в Стерлитамаке', 'Шлакоблоки, кирпич, цемент, кладочная сетка. Комплектация стройплощадок за 1 день. Доставка по Стерлитамаку и Югу Башкирии.')
   const { data: products = [] } = useProducts()
   const popularProducts = products.filter(p => p.is_popular).slice(0, 4)
   const [callbackOpen, setCallbackOpen] = useState(false)
+
+  // JSON-LD: LocalBusiness
+  useEffect(() => {
+    const existing = document.getElementById('json-ld-local-business')
+    if (existing) return
+    const script = document.createElement('script')
+    script.type = 'application/ld+json'
+    script.id = 'json-ld-local-business'
+    script.textContent = JSON.stringify(LOCAL_BUSINESS_JSON_LD)
+    document.head.appendChild(script)
+    return () => { document.getElementById('json-ld-local-business')?.remove() }
+  }, [])
 
   return (
     <div>
@@ -178,26 +225,17 @@ export default function HomePage() {
         <div className="bg-[#1e3a5f] text-white rounded-2xl p-8">
           {/* Avatar */}
           <div className="w-20 h-20 rounded-full bg-white/15 border-2 border-[#f97316]/50 flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl font-bold text-[#f97316] select-none">РЗ</span>
+            <span className="text-2xl font-bold text-[#f97316] select-none">А</span>
           </div>
-          <h3 className="text-lg font-bold mb-1">Ришат Зиннуров</h3>
+          <h3 className="text-lg font-bold mb-1">Артур</h3>
           <p className="text-white/60 text-sm mb-5">Менеджер по снабжению · Ответим в течение 15 минут</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a
-              href="tel:89177969222"
-              className="flex items-center justify-center gap-2 bg-[#f97316] hover:bg-[#ea6c04] text-white font-semibold px-6 py-3 rounded-xl transition-colors"
-            >
-              <Phone className="h-4 w-4" />
-              8-917-796-92-22
-            </a>
-            <a
-              href="mailto:info@sck-stroi.ru"
-              className="flex items-center justify-center gap-2 border border-white/30 hover:border-white/60 text-white font-medium px-6 py-3 rounded-xl transition-all"
-            >
-              <Mail className="h-4 w-4" />
-              info@sck-stroi.ru
-            </a>
-          </div>
+          <a
+            href="tel:89177969222"
+            className="inline-flex items-center justify-center gap-2 bg-[#f97316] hover:bg-[#ea6c04] text-white font-semibold px-8 py-3 rounded-xl transition-colors"
+          >
+            <Phone className="h-4 w-4" />
+            8-917-796-92-22
+          </a>
         </div>
       </motion.section>
     </div>

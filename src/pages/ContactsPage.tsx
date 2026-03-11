@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
-import { Phone, Mail, Clock, MessageCircle } from 'lucide-react'
+import { Phone, Clock } from 'lucide-react'
+import { useSEO } from '../hooks/useSEO'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -12,6 +13,7 @@ const stagger = {
 }
 
 export default function ContactsPage() {
+  useSEO('Контакты', 'Телефон и время работы СЦК. Менеджер Артур: 8-917-796-92-22.')
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
@@ -29,8 +31,8 @@ export default function ContactsPage() {
           Свяжитесь с нами
         </motion.h1>
         <motion.p variants={fadeUp} className="text-gray-500 max-w-xl mx-auto">
-          Ришат ответит в течение 15 минут в рабочее время.
-          Если не дозвонились — напишите на почту или позвоните повторно.
+          Артур ответит в течение 15 минут в рабочее время.
+          Если не дозвонились — позвоните повторно.
         </motion.p>
       </motion.div>
 
@@ -60,44 +62,6 @@ export default function ContactsPage() {
           </div>
         </motion.a>
 
-        {/* Email */}
-        <motion.a
-          variants={fadeUp}
-          href="mailto:info@sck-stroi.ru"
-          className="flex items-start gap-4 p-6 bg-white border border-gray-100 rounded-2xl hover:border-[#f97316]/40 hover:shadow-md transition-all group"
-        >
-          <div className="w-12 h-12 rounded-xl bg-[#f97316]/10 flex items-center justify-center shrink-0">
-            <Mail className="h-6 w-6 text-[#f97316]" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-400 mb-1">Email</p>
-            <p className="text-lg font-bold text-[#1e3a5f] group-hover:text-[#f97316] transition-colors">
-              info@sck-stroi.ru
-            </p>
-            <p className="text-xs text-gray-400 mt-1">Ответим в течение 2 часов</p>
-          </div>
-        </motion.a>
-
-        {/* WhatsApp */}
-        <motion.a
-          variants={fadeUp}
-          href="https://wa.me/79177969222"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-start gap-4 p-6 bg-white border border-gray-100 rounded-2xl hover:border-green-400/40 hover:shadow-md transition-all group"
-        >
-          <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
-            <MessageCircle className="h-6 w-6 text-green-600" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-400 mb-1">WhatsApp</p>
-            <p className="text-lg font-bold text-[#1e3a5f] group-hover:text-green-600 transition-colors">
-              +7 917 796-92-22
-            </p>
-            <p className="text-xs text-gray-400 mt-1">Удобно для фото и документов</p>
-          </div>
-        </motion.a>
-
         {/* Working hours */}
         <motion.div
           variants={fadeUp}
@@ -124,12 +88,12 @@ export default function ContactsPage() {
         viewport={{ once: true, amount: 0.3 }}
       >
         <div className="w-20 h-20 rounded-full bg-white/15 border-2 border-[#f97316]/50 flex items-center justify-center mx-auto mb-4">
-          <span className="text-2xl font-bold text-[#f97316] select-none">РЗ</span>
+          <span className="text-2xl font-bold text-[#f97316] select-none">А</span>
         </div>
-        <h2 className="text-lg font-bold mb-1">Ришат Зиннуров</h2>
-        <p className="text-white/60 text-sm mb-2">Менеджер по снабжению · Руководитель</p>
+        <h2 className="text-lg font-bold mb-1">Артур</h2>
+        <p className="text-white/60 text-sm mb-2">Менеджер по снабжению</p>
         <p className="text-white/50 text-xs mb-6 max-w-md mx-auto">
-          Лично контролирует каждый заказ. Поможет подобрать материалы, рассчитает объём
+          Поможет подобрать материалы, рассчитает объём
           и организует доставку в удобное для вас время.
         </p>
         <a
@@ -137,7 +101,7 @@ export default function ContactsPage() {
           className="inline-flex items-center gap-2 bg-[#f97316] hover:bg-[#ea6c04] text-white font-semibold px-8 py-3 rounded-xl transition-colors"
         >
           <Phone className="h-4 w-4" />
-          Позвонить Ришату
+          Позвонить
         </a>
       </motion.div>
 

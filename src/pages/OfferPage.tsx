@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 
-const EFFECTIVE_DATE = '1 января 2025 г.'
+const EFFECTIVE_DATE = '11 марта 2026 г.'
 
 function Section({ num, title, children }: { num: string; title: string; children: React.ReactNode }) {
   return (

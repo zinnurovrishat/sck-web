@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Minus, Plus, ShoppingCart, Check } from 'lucide-react'
 import { Badge } from '../ui/badge'
 import { useCart } from '../../context/CartContext'
@@ -8,7 +9,7 @@ interface Props {
   product: Product
 }
 
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80'
+const FALLBACK_IMAGE = '/images/shlakoblok-390.jpg'
 
 export default function ProductCard({ product }: Props) {
   const [quantity, setQuantity] = useState(1)
@@ -25,7 +26,7 @@ export default function ProductCard({ product }: Props) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-[#f97316]/40 hover:shadow-md transition-all group flex flex-col">
       {/* Image */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-gray-50">
+      <Link to={`/shop/${product.id}`} className="relative aspect-[4/3] overflow-hidden bg-gray-50 block">
         {product.is_popular && (
           <Badge className="absolute top-2 left-2 z-10 bg-[#f97316] hover:bg-[#f97316] text-white text-xs">
             Хит продаж
@@ -44,28 +45,28 @@ export default function ProductCard({ product }: Props) {
             ;(e.target as HTMLImageElement).src = FALLBACK_IMAGE
           }}
         />
-      </div>
+      </Link>
 
       {/* Content */}
       <div className="p-4 flex flex-col flex-1">
         <p className="text-xs text-gray-400 mb-1">{product.dimensions}</p>
-        <h3 className="font-semibold text-[#1e3a5f] text-sm leading-tight mb-3 flex-1">
+        <Link to={`/shop/${product.id}`} className="font-semibold text-[#1e3a5f] text-sm leading-tight mb-3 flex-1 hover:text-[#f97316] transition-colors">
           {product.name}
-        </h3>
+        </Link>
 
         {/* Prices */}
         <div className="flex gap-3 mb-4 text-sm">
           <div>
             <span className="text-xs text-gray-400 block">Нал</span>
             <span className="font-bold text-[#1e3a5f]">
-              {product.price_cash} ₽/{product.unit}
+              {product.price_cash.toLocaleString('ru-RU')} ₽/{product.unit}
             </span>
           </div>
           <div className="w-px bg-gray-100" />
           <div>
             <span className="text-xs text-gray-400 block">Безнал</span>
             <span className="font-medium text-gray-600">
-              {product.price_cashless} ₽/{product.unit}
+              {product.price_cashless.toLocaleString('ru-RU')} ₽/{product.unit}
             </span>
           </div>
         </div>
@@ -81,7 +82,7 @@ export default function ProductCard({ product }: Props) {
             </button>
             <span className="w-8 text-center text-sm font-medium">{quantity}</span>
             <button
-              onClick={() => setQuantity(q => q + 1)}
+              onClick={() => setQuantity(q => Math.min(999, q + 1))}
               className="w-8 h-8 flex items-center justify-center hover:bg-gray-50 rounded-r-lg transition-colors cursor-pointer"
             >
               <Plus className="h-3 w-3" />
