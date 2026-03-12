@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useSEO } from '../hooks/useSEO'
-import { Plus, X, ShoppingCart, Calculator, Info, Check, Home, Layers, Columns2 } from 'lucide-react'
+import { Plus, X, ShoppingCart, Calculator, Info, Check, Home, Columns2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -15,7 +15,7 @@ interface Opening {
 }
 
 type WallThickness = 40 | 20
-type TabType = 'walls' | 'foundation' | 'partition'
+type TabType = 'walls' | 'partition'
 
 interface WallsState {
   length: number
@@ -27,14 +27,6 @@ interface WallsState {
   wastePct: number
   doors: Opening[]
   windows: Opening[]
-}
-
-interface FoundationState {
-  perimeter: number
-  depth: number
-  blockId: string
-  jointMm: number
-  wastePct: number
 }
 
 interface PartitionState {
@@ -115,14 +107,6 @@ export default function CalculatorPage() {
     windows: [newOpening(1.2, 1.4)],
   })
 
-  const [foundation, setFoundation] = useState<FoundationState>({
-    perimeter: 36,
-    depth: 1.5,
-    blockId: blockProducts[0]?.id ?? '',
-    jointMm: 10,
-    wastePct: 5,
-  })
-
   const [partition, setPartition] = useState<PartitionState>({
     length: 5, height: 2.7,
     blockId: blockProducts[0]?.id ?? '',
@@ -131,15 +115,12 @@ export default function CalculatorPage() {
   })
 
   const updateWalls = (patch: Partial<WallsState>) => setWalls(prev => ({ ...prev, ...patch }))
-  const updateFoundation = (patch: Partial<FoundationState>) => setFoundation(prev => ({ ...prev, ...patch }))
   const updatePartition = (patch: Partial<PartitionState>) => setPartition(prev => ({ ...prev, ...patch }))
 
   const selectedBlock = useMemo(() => {
-    const id = activeTab === 'walls' ? walls.blockId
-      : activeTab === 'foundation' ? foundation.blockId
-      : partition.blockId
+    const id = activeTab === 'walls' ? walls.blockId : partition.blockId
     return allProducts.find(p => p.id === id) ?? blockProducts[0]
-  }, [activeTab, walls.blockId, foundation.blockId, partition.blockId, allProducts, blockProducts])
+  }, [activeTab, walls.blockId, partition.blockId, allProducts, blockProducts])
 
   const result = useMemo((): CalcResult | null => {
     if (!selectedBlock) return null
@@ -153,16 +134,11 @@ export default function CalculatorPage() {
       return computeResult(netArea, selectedBlock, walls.jointMm, walls.wastePct)
     }
 
-    if (activeTab === 'foundation') {
-      const netArea = foundation.perimeter * foundation.depth
-      return computeResult(netArea, selectedBlock, foundation.jointMm, foundation.wastePct)
-    }
-
     // partition
     const openingsArea = partition.openings.reduce((s, o) => s + o.width * o.height, 0)
     const netArea = Math.max(0, partition.length * partition.height - openingsArea)
     return computeResult(netArea, selectedBlock, partition.jointMm, partition.wastePct)
-  }, [activeTab, walls, foundation, partition, selectedBlock])
+  }, [activeTab, walls, partition, selectedBlock])
 
   const handleAddToCart = () => {
     if (!result || !selectedBlock) return
@@ -173,7 +149,6 @@ export default function CalculatorPage() {
 
   const tabs: { id: TabType; label: string; icon: React.ElementType }[] = [
     { id: 'walls', label: 'Стены дома', icon: Home },
-    { id: 'foundation', label: 'Фундамент', icon: Layers },
     { id: 'partition', label: 'Перегородки / Заборы', icon: Columns2 },
   ]
 
@@ -218,7 +193,7 @@ export default function CalculatorPage() {
                 {result.withWaste.toLocaleString('ru-RU')} шт
               </p>
               <p className="text-xs text-white/40 mt-0.5">
-                Базово {result.baseCount} + запас {activeTab === 'walls' ? walls.wastePct : activeTab === 'foundation' ? foundation.wastePct : partition.wastePct}%
+                Базово {result.baseCount} + запас {activeTab === 'walls' ? walls.wastePct : partition.wastePct}%
               </p>
             </div>
 
@@ -492,60 +467,6 @@ export default function CalculatorPage() {
           )}
 
           {/* ───── FOUNDATION ───── */}
-          {activeTab === 'foundation' && (
-            <>
-              <div className="bg-white rounded-2xl border border-gray-100 p-6">
-                <h2 className="font-semibold text-[#1e3a5f] mb-4 flex items-center gap-2">
-                  <span className="w-7 h-7 bg-[#1e3a5f] text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
-                  Размеры фундамента
-                </h2>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <Label className="text-xs text-gray-500 mb-1 block">Периметр ленты (м)</Label>
-                    <Input type="number" min={0} step={0.5} value={foundation.perimeter || ''}
-                      onChange={e => updateFoundation({ perimeter: parseFloat(e.target.value) || 0 })}
-                      className="text-center" />
-                    <p className="text-xs text-gray-400 mt-1">Сумма длин всех стен снаружи + внутри</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-gray-500 mb-1 block">Высота фундамента (м)</Label>
-                    <Input type="number" min={0} step={0.1} value={foundation.depth || ''}
-                      onChange={e => updateFoundation({ depth: parseFloat(e.target.value) || 0 })}
-                      className="text-center" />
-                    <p className="text-xs text-gray-400 mt-1">Глубина залегания + надземная часть</p>
-                  </div>
-                </div>
-                <div className="bg-blue-50 rounded-xl p-3 text-xs text-blue-700 flex items-start gap-2">
-                  <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                  <span>Для дома 10×8 м периметр внешних стен = 36 м. Если есть внутренние несущие — добавьте их длину.</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl border border-gray-100 p-6">
-                <h2 className="font-semibold text-[#1e3a5f] mb-4 flex items-center gap-2">
-                  <span className="w-7 h-7 bg-[#1e3a5f] text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
-                  Параметры кладки
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-xs text-gray-500 mb-1 block">Размер блока</Label>
-                    <BlockSelect value={foundation.blockId} onChange={v => updateFoundation({ blockId: v })} />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-gray-500 mb-1 block">Толщина шва (мм)</Label>
-                    <Input type="number" min={0} max={30} value={foundation.jointMm || ''} className="text-center"
-                      onChange={e => updateFoundation({ jointMm: parseFloat(e.target.value) || 0 })} />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-gray-500 mb-1 block">Запас (%)</Label>
-                    <Input type="number" min={0} max={30} value={foundation.wastePct || ''} className="text-center"
-                      onChange={e => updateFoundation({ wastePct: parseFloat(e.target.value) || 0 })} />
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
           {/* ───── PARTITION / FENCE ───── */}
           {activeTab === 'partition' && (
             <>
