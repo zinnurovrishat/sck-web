@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Navigate, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { Package, TrendingUp, ShoppingBag, BadgePercent, LogOut, ChevronRight, Settings } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Package, TrendingUp, ShoppingBag, BadgePercent, LogOut, ChevronRight, Settings, MapPin, Plus, Trash2, X, FileText, Download } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { useSEO } from '../hooks/useSEO'
 import { calcDiscount, nextDiscountInfo } from '../lib/discount'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
 
 interface OrderItem {
   name: string
@@ -42,7 +44,31 @@ const STATUS_COLORS: Record<Order['status'], string> = {
 }
 
 
-type Tab = 'orders' | 'settings'
+interface OrderDocument {
+  id: string
+  order_id: string
+  type: 'invoice' | 'upd' | 'contract' | 'receipt'
+  file_url: string
+  created_at: string
+}
+
+const DOC_TYPE_LABELS: Record<OrderDocument['type'], string> = {
+  invoice: 'Накладная',
+  upd: 'УПД',
+  contract: 'Договор',
+  receipt: 'Чек',
+}
+
+interface Site {
+  id: string
+  name: string
+  address: string
+  contact_person?: string
+  contact_phone?: string
+  notes?: string
+}
+
+type Tab = 'orders' | 'documents' | 'sites' | 'settings'
 
 export default function CabinetPage() {
   useSEO('Личный кабинет')
@@ -64,6 +90,62 @@ export default function CabinetPage() {
       return (data ?? []) as Order[]
     },
     enabled: !!user.id,
+  })
+
+  const queryClient = useQueryClient()
+
+  const { data: documents = [] } = useQuery<OrderDocument[]>({
+    queryKey: ['order_documents', user.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('order_documents')
+        .select('*, orders!inner(user_id)')
+        .eq('orders.user_id', user.id)
+        .order('created_at', { ascending: false })
+      if (error) return []
+      return (data ?? []) as OrderDocument[]
+    },
+    enabled: !!user.id,
+  })
+
+  const { data: sites = [] } = useQuery<Site[]>({
+    queryKey: ['sites', user.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('sites').select('*').eq('user_id', user.id).order('created_at')
+      if (error) return []
+      return (data ?? []) as Site[]
+    },
+    enabled: !!user.id,
+  })
+
+  const [showSiteForm, setShowSiteForm] = useState(false)
+  const [siteForm, setSiteForm] = useState({ name: '', address: '', contact_person: '', contact_phone: '', notes: '' })
+
+  const addSite = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('sites').insert({
+        user_id: user.id,
+        name: siteForm.name.trim(),
+        address: siteForm.address.trim(),
+        contact_person: siteForm.contact_person.trim() || null,
+        contact_phone: siteForm.contact_phone.trim() || null,
+        notes: siteForm.notes.trim() || null,
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sites', user.id] })
+      setShowSiteForm(false)
+      setSiteForm({ name: '', address: '', contact_person: '', contact_phone: '', notes: '' })
+    },
+  })
+
+  const deleteSite = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('sites').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sites', user.id] }),
   })
 
   const completedOrders = orders.filter(o => o.status === 'completed')
@@ -184,7 +266,7 @@ export default function CabinetPage() {
 
       {/* Tabs */}
       <div className="flex border-b border-gray-100 mb-6 gap-1">
-        {([['orders', Package, 'История заказов'], ['settings', Settings, 'Настройки']] as const).map(
+        {([['orders', Package, 'История заказов'], ['documents', FileText, 'Документы'], ['sites', MapPin, 'Мои объекты'], ['settings', Settings, 'Настройки']] as const).map(
           ([t, Icon, label]) => (
             <button
               key={t}
@@ -288,6 +370,173 @@ export default function CabinetPage() {
                     <p className="font-bold text-[#f97316] text-lg shrink-0 ml-4">
                       {order.total_amount.toLocaleString('ru-RU')} ₽
                     </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab: Documents */}
+      {tab === 'documents' && (
+        <div>
+          <h2 className="text-lg font-semibold text-[#1e3a5f] mb-4">Документы</h2>
+          {documents.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">
+              <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p className="font-medium">Документов пока нет</p>
+              <p className="text-sm mt-1 max-w-xs mx-auto">
+                Накладные, УПД и договоры появятся здесь после подтверждения заказа менеджером
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {documents.map(doc => {
+                const order = orders.find(o => o.id === doc.order_id)
+                return (
+                  <motion.div
+                    key={doc.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between gap-4"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#1e3a5f]/10 flex items-center justify-center shrink-0">
+                        <FileText className="h-5 w-5 text-[#1e3a5f]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-[#1e3a5f]">{DOC_TYPE_LABELS[doc.type]}</p>
+                        {order && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            Заказ №{order.order_number} ·{' '}
+                            {new Date(doc.created_at).toLocaleDateString('ru-RU')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <a
+                      href={doc.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                      className="flex items-center gap-1.5 text-sm font-medium text-[#f97316] hover:text-[#ea6c04] transition-colors shrink-0"
+                    >
+                      <Download className="h-4 w-4" />
+                      Скачать
+                    </a>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab: Sites */}
+      {tab === 'sites' && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-[#1e3a5f]">Мои объекты</h2>
+            <button
+              onClick={() => setShowSiteForm(v => !v)}
+              className="flex items-center gap-1.5 text-sm bg-[#f97316] hover:bg-[#ea6c04] text-white font-medium px-4 py-2 rounded-xl transition-colors cursor-pointer"
+            >
+              {showSiteForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {showSiteForm ? 'Отмена' : 'Добавить объект'}
+            </button>
+          </div>
+
+          {showSiteForm && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white border border-gray-100 rounded-2xl p-5 mb-4"
+            >
+              <h3 className="font-semibold text-[#1e3a5f] mb-4">Новый объект</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1 block">Название объекта <span className="text-red-400">*</span></Label>
+                  <Input placeholder="Напр.: Дом в Ишимбае" value={siteForm.name}
+                    onChange={e => setSiteForm(f => ({ ...f, name: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1 block">Адрес <span className="text-red-400">*</span></Label>
+                  <Input placeholder="ул. Ленина, 10" value={siteForm.address}
+                    onChange={e => setSiteForm(f => ({ ...f, address: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1 block">Контактное лицо</Label>
+                  <Input placeholder="Прораб Иван" value={siteForm.contact_person}
+                    onChange={e => setSiteForm(f => ({ ...f, contact_person: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1 block">Телефон на объекте</Label>
+                  <Input placeholder="+7 (___) ___-__-__" value={siteForm.contact_phone}
+                    onChange={e => setSiteForm(f => ({ ...f, contact_phone: e.target.value }))} />
+                </div>
+              </div>
+              <div className="mb-4">
+                <Label className="text-xs text-gray-500 mb-1 block">Заметки</Label>
+                <textarea
+                  placeholder="Особенности въезда, время работы и т.д."
+                  value={siteForm.notes}
+                  onChange={e => setSiteForm(f => ({ ...f, notes: e.target.value }))}
+                  rows={2}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20 resize-none"
+                />
+              </div>
+              <button
+                onClick={() => addSite.mutate()}
+                disabled={!siteForm.name.trim() || !siteForm.address.trim() || addSite.isPending}
+                className="bg-[#1e3a5f] hover:bg-[#162d4a] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-xl transition-colors cursor-pointer text-sm"
+              >
+                {addSite.isPending ? 'Сохраняем...' : 'Сохранить объект'}
+              </button>
+            </motion.div>
+          )}
+
+          {sites.length === 0 && !showSiteForm ? (
+            <div className="text-center py-16 text-gray-400">
+              <MapPin className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p className="font-medium">Объектов пока нет</p>
+              <p className="text-sm mt-1">Добавьте адрес стройки для быстрого оформления доставки</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {sites.map(site => (
+                <motion.div
+                  key={site.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="bg-white border border-gray-100 rounded-2xl p-5"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-[#1e3a5f]/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <MapPin className="h-4 w-4 text-[#1e3a5f]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-[#1e3a5f]">{site.name}</p>
+                        <p className="text-sm text-gray-500 mt-0.5">{site.address}</p>
+                        {site.contact_person && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            {site.contact_person}
+                            {site.contact_phone && ` · ${site.contact_phone}`}
+                          </p>
+                        )}
+                        {site.notes && (
+                          <p className="text-xs text-gray-400 mt-0.5 italic">{site.notes}</p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => deleteSite.mutate(site.id)}
+                      disabled={deleteSite.isPending}
+                      className="text-gray-300 hover:text-red-400 transition-colors cursor-pointer shrink-0 p-1"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </motion.div>
               ))}
